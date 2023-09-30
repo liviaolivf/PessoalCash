@@ -71,9 +71,9 @@ function updateTransactionsList() {
     const transactionsListHTML = transactions.map((transaction, index) => {
         return `
             <li class="transaction ${transaction.amount >= 0 ? 'income' : 'expense'}">
-                <span>${transaction.text}</span>
-                <span>${transaction.amount >= 0 ? `R$ ${transaction.amount.toFixed(2)}` : `- R$ ${Math.abs(transaction.amount).toFixed(2)}`}</span>
-                <span>${transaction.category}</span>
+                <span class="transaction-text">${transaction.text}</span>
+                <span class="transaction-amount">${transaction.amount >= 0 ? `R$ ${transaction.amount.toFixed(2)}` : `- R$ ${Math.abs(transaction.amount).toFixed(2)}`}</span>
+                <span class="transaction-category">${transaction.category}</span>
                 <span>${transaction.date}</span>
                 <button class="delete-button" data-index="${index}"><i class="ph ph-trash"></i></button>
             </li>
