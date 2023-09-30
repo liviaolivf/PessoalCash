@@ -67,21 +67,20 @@ modalForm.addEventListener('submit', (e) => {
     const date = document.getElementById('date').value;
     const category = document.getElementById('category').value;
 
-    if (text.trim() === '' || isNaN(amount) || date.trim() === '' || !selectedTransactionType) {
-        alert('Por favor, preencha todos os campos corretamente.');
-        return;
-    }
-    
     if (category === "0" || !category) {
         alert('Por favor, selecione uma categoria.');
         return;
     }
-
+    
     if (!selectedTransactionType) {
         alert('Por favor, selecione "Entrada" ou "Saída" antes de submeter.');
         return;
     }
-
+    
+    if (text.trim() === '' || isNaN(amount) || date.trim() === '' || !selectedTransactionType) {
+        alert('Por favor, preencha todos os campos corretamente.');
+        return;
+    }
 
     const transaction = {
         id: Date.now(),
