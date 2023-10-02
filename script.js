@@ -31,6 +31,12 @@ function formatDateToBR(dateString) {
     return `${day}/${month}/${year}`;
 }
 
+// fn para conveter o número corretamente
+
+function formatCurrency(number) {
+    return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(number);
+}
+
 
 // Formata o ano corretamente no input de data
 dateInput.addEventListener('input', (e) => {
@@ -68,18 +74,15 @@ modalForm.addEventListener('submit', (e) => {
     const category = document.getElementById('category').value;
 
     if (category === "0" || !category) {
-        alert('Por favor, selecione uma categoria.');
-        return;
+        return alert('Por favor, selecione uma categoria.');
     }
     
     if (!selectedTransactionType) {
-        alert('Por favor, selecione "Entrada" ou "Saída" antes de submeter.');
-        return;
+        return alert('Por favor, selecione "Entrada" ou "Saída" antes de submeter.');
     }
     
     if (text.trim() === '' || isNaN(amount) || date.trim() === '' || !selectedTransactionType) {
-        alert('Por favor, preencha todos os campos corretamente.');
-        return;
+        return alert('Por favor, preencha todos os campos corretamente.');
     }
 
     const transaction = {
@@ -111,7 +114,7 @@ function updateTransactionsList() {
         return `
             <li class="transaction ${transaction.amount >= 0 ? 'income' : 'expense'}">
                 <span class="transaction-text">${transaction.text}</span>
-                <span class="transaction-amount">${transaction.amount >= 0 ? `R$ ${transaction.amount.toFixed(2)}` : `- R$ ${Math.abs(transaction.amount).toFixed(2)}`}</span>
+                <span class="transaction-amount">${transaction.amount >= 0 ? `${formatCurrency(transaction.amount.toFixed(2))}` : `-${formatCurrency(Math.abs(transaction.amount).toFixed(2))}`}</span>
                 <span class="transaction-category">${transaction.category}</span>
                 <span class="transaction-data">${formatDateToBR(transaction.date)}</span>
                 <button class="delete-button" data-id="${transaction.id}"><i class="ph ph-trash"></i></button>
@@ -158,9 +161,9 @@ function updateSummary() {
 
     const total = income + expense;
 
-    incomeDisplay.textContent = `R$ ${income.toFixed(2)}`;
-    expenseDisplay.textContent = `- R$ ${Math.abs(expense).toFixed(2)}`;
-    totalDisplay.textContent = `R$ ${total.toFixed(2)}`;
+    incomeDisplay.textContent = `${formatCurrency(income.toFixed(2))}`;
+    expenseDisplay.textContent = `-${formatCurrency(Math.abs(expense).toFixed(2))}`;
+    totalDisplay.textContent = `${formatCurrency(total.toFixed(2))}`;
 }
 
 
