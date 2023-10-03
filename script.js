@@ -14,6 +14,13 @@ const searchButton = document.getElementById('search-button');
 const dateInput = document.getElementById('date');
 
 
+const storedTransactions = JSON.parse(localStorage.getItem('transactions'));
+const transactions = storedTransactions || [];
+
+function saveTransactionsToLocalStorage() {
+    localStorage.setItem('transactions', JSON.stringify(transactions));
+}
+
 // Botões do tipo de transação (Entrada ou Saída)
 transactionTypeButtons.forEach(button => {
     button.addEventListener('click', () => {
@@ -94,6 +101,9 @@ modalForm.addEventListener('submit', (e) => {
     };
 
     transactions.push(transaction);
+
+    saveTransactionsToLocalStorage();
+    
     updateTransactionsList();
     updateSummary();
     modalForm.reset();
@@ -144,6 +154,9 @@ function deleteTransactionById(id) {
     if (index !== -1) {
         transactions.splice(index, 1);
     }
+
+    saveTransactionsToLocalStorage();
+
     updateTransactionsList();
     updateSummary();
 }
@@ -188,7 +201,7 @@ function displayTransactions(transactionsToDisplay) {
         return `
             <li class="transaction ${transaction.amount >= 0 ? 'income' : 'expense'}">
                 <span class="transaction-text">${transaction.text}</span>
-                <span class="transaction-amount">${transaction.amount >= 0 ? `R$ ${transaction.amount.toFixed(2)}` : `- R$ ${Math.abs(transaction.amount).toFixed(2)}`}</span>
+                <span class="transaction-amount">${transaction.amount >= 0 ? `${formatCurrency(transaction.amount.toFixed(2))}` : `-${formatCurrency(Math.abs(transaction.amount).toFixed(2))}`}</span>
                 <span class="transaction-category">${transaction.category}</span>
                 <span class="transaction-data">${formatDateToBR(transaction.date)}</span>
                 <button class="delete-button" data-id="${transaction.id}"><i class="ph ph-trash"></i></button>
@@ -214,6 +227,5 @@ searchInput.addEventListener('keyup', function(event) {
     }
 });
 
-const transactions = []; // Armazena as transações
 updateTransactionsList();
 updateSummary();
