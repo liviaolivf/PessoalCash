@@ -44,6 +44,33 @@ function formatCurrency(number) {
     return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(number);
 }
 
+async function listarTransacoes() {
+    const response = await fetch('http://localhost:3000/transactions');
+    const data = await response.json();
+    return data;
+}
+
+// Função para cadastrar uma transação no banco de dados (chamar back-end)
+async function cadastrar(transaction) {
+    await fetch('http://localhost:3000/transactions', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(transaction),
+    })
+}
+
+async function deletar(id) {
+    try {
+        await fetch(`http://localhost:3000/transactions/${id}`, {
+            method: 'DELETE',
+        })
+    } catch (error) {
+        alert('Erro ao deletar transação');
+    }
+}
+
 
 // Formata o ano corretamente no input de data
 dateInput.addEventListener('input', (e) => {
@@ -99,6 +126,8 @@ modalForm.addEventListener('submit', (e) => {
         date,
         category,
     };
+
+    cadastrar(transaction);
 
     transactions.push(transaction);
 
