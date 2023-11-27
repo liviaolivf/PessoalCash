@@ -13,7 +13,6 @@ const searchInput = document.getElementById('search-input');
 const searchButton = document.getElementById('search-button');
 const dateInput = document.getElementById('date');
 
-
 const storedTransactions = JSON.parse(localStorage.getItem('transactions'));
 const transactions = storedTransactions || [];
 
@@ -45,30 +44,56 @@ function formatCurrency(number) {
 }
 
 async function listarTransacoes() {
-    const response = await fetch('http://localhost:3000/transactions');
-    const data = await response.json();
-    return data;
+        const response = await fetch('http://localhost:8080/transactions', {
+            headers: {
+                'Access-Control-Allow-Origin': '*',
+                'Content-Type': 'application/json'
+            },
+            crossorigin: true,
+            mode: 'no-cors'
+        });
+        if (!response.ok) throw new Error('Erro ao listar transações');
+        const data = await response.json();
+        return data;
 }
 
 // Função para cadastrar uma transação no banco de dados (chamar back-end)
 async function cadastrar(transaction) {
-    await fetch('http://localhost:3000/transactions', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(transaction),
-    })
+    try {
+        await axios.post('http://localhost:8080/transactions', transaction, {
+            headers: {
+                'Access-Control-Allow-Origin': '*',
+                'Content-Type': 'application/json'
+            },
+            crossorigin: true,    
+            mode: 'no-cors'
+        });
+        } catch (error) {
+            throw new Error('Erro ao cadastrar transação');
+        }
+        // const response = await fetch('http://localhost:8080/transactions', {
+        //     method: 'POST',
+        //     headers: {
+        //         'Content-Type': 'application/json',
+        //         'Access-Control-Allow-Origin': '*'
+        //     },
+        //     crossorigin: true, 
+        //     mode: "no-cors",  
+        //     body: JSON.stringify(transaction),
+        // })
+        // if (!response.ok) throw new Error('Erro ao cadastrar transação');
 }
 
 async function deletar(id) {
-    try {
-        await fetch(`http://localhost:3000/transactions/${id}`, {
+        const response = await fetch(`http://localhost:8080/transactions/${id}`, {
             method: 'DELETE',
+            headers: {
+                'Access-Control-Allow-Origin': '*'
+            },
+            crossorigin: true,    
+            mode: 'cors'
         })
-    } catch (error) {
-        alert('Erro ao deletar transação');
-    }
+        if (!response.ok) throw new Error('Erro ao deletar transação');
 }
 
 
@@ -99,7 +124,7 @@ closeButton.addEventListener('click', () => {
 
 
 // Adiciona uma transação através do formulário
-modalForm.addEventListener('submit', (e) => {
+modalForm.addEventListener('submit', async (e) => {
     e.preventDefault();
 
     const text = document.getElementById('text').value;
@@ -127,23 +152,20 @@ modalForm.addEventListener('submit', (e) => {
         category,
     };
 
-    cadastrar(transaction);
-
-    transactions.push(transaction);
-
-    saveTransactionsToLocalStorage();
-    
-    updateTransactionsList();
-    updateSummary();
-    modalForm.reset();
-    modalOverlay.style.display = "none";
-    modal.style.display = 'none';
-
-    // Redefinir o tipo de transação selecionado
-    selectedTransactionType = null;
-
-    // Remover a classe 'selected' de ambos os botões
-    transactionTypeButtons.forEach(btn => btn.classList.remove('selected'));
+    try {
+        // Tente cadastrar a transação no back-end
+        await cadastrar(transaction);
+        // Se bem-sucedido, atualize o front-end:
+        transactions.push(transaction);
+        saveTransactionsToLocalStorage();
+        updateTransactionsList();
+        updateSummary();
+        closeModal();
+    } catch (error) {
+        // Se falhar, mostre um erro e não atualize o front-end
+        alert(error.message)
+        return;
+    }
 });
 
 
@@ -169,9 +191,15 @@ function updateTransactionsList() {
 function attachDeleteListeners() {
     const deleteButtons = document.querySelectorAll('.delete-button');
     deleteButtons.forEach(button => {
-        button.addEventListener('click', (e) => {
+        button.addEventListener('click', async (e) => {
             const id = parseInt(e.target.closest('.delete-button').getAttribute('data-id'));
-            deleteTransactionById(id);
+            try {
+                await deletar(id);
+                deleteTransactionById(id);
+            } catch (error) {
+                alert(error.message);
+                return;
+            }
         });
     });
 }
