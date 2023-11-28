@@ -15,8 +15,7 @@ const searchInput = document.getElementById("search-input");
 const searchButton = document.getElementById("search-button");
 const dateInput = document.getElementById("date");
 
-const storedTransactions = JSON.parse(localStorage.getItem("transactions"));
-const transactions = storedTransactions || [];
+const transactions = [];
 
 function saveTransactionsToLocalStorage() {
   localStorage.setItem("transactions", JSON.stringify(transactions));
@@ -34,7 +33,6 @@ transactionTypeButtons.forEach((button) => {
 
 // Função para formatar a data no padrão brasileiro
 function formatDateToBR(dateString) {
-  console.log(`dateString: ${dateString}, type: ${typeof dateString}`);
   const [year, month, day] = dateString.split("T")[0].split("-");
   return `${day}/${month}/${year}`;
 }
@@ -106,10 +104,19 @@ addTransactionButton.addEventListener("click", () => {
 });
 
 closeButton.addEventListener("click", () => {
+  closeModal();
+});
+
+function closeModal() {
   document.querySelector("html").dataset.isModalOpen = false;
   modalOverlay.style.display = "none";
   modal.style.display = "none";
-});
+
+  // Limpa o formulário
+  modalForm.reset();
+  selectedTransactionType = null;
+  transactionTypeButtons.forEach((btn) => btn.classList.remove("selected"));
+}
 
 // Adiciona uma transação através do formulário
 modalForm.addEventListener("submit", async (e) => {
@@ -147,7 +154,10 @@ modalForm.addEventListener("submit", async (e) => {
     // Tente cadastrar a transação no back-end
     await cadastrar(transaction);
     // Se bem-sucedido, atualize o front-end:
-    transactions.push(transaction);
+    transactions.push({
+      ...transaction,
+      created_at: transaction.created_at.toISOString(),
+    });
     saveTransactionsToLocalStorage();
     updateTransactionsList();
     updateSummary();
@@ -156,6 +166,29 @@ modalForm.addEventListener("submit", async (e) => {
     // Se falhar, mostre um erro e não atualize o front-end
     alert(error.message);
     return;
+  }
+});
+
+document.addEventListener("DOMContentLoaded", async () => {
+  try {
+    const result = await listarTransacoes();
+    const transactionList = result["_embedded"]["transactions"];
+    transactions.push(
+      ...transactionList.map((t) => ({
+        id: t["_links"]["self"]["href"].split("/").pop(),
+        description: t["description"],
+        amount: t["amount"],
+        created_at: t["created_at"],
+        type: t["type"],
+        category: t["category"],
+      }))
+    );
+    saveTransactionsToLocalStorage();
+
+    updateTransactionsList();
+    updateSummary();
+  } catch (error) {
+    alert(error.message);
   }
 });
 
@@ -203,8 +236,8 @@ function attachDeleteListeners() {
         e.target.closest(".delete-button").getAttribute("data-id")
       );
       try {
-        await deletar(id);
         deleteTransactionById(id);
+        await deletar(id);
       } catch (error) {
         alert(error.message);
         return;
@@ -215,7 +248,7 @@ function attachDeleteListeners() {
 
 // Deleta uma transação pelo ID
 function deleteTransactionById(id) {
-  const index = transactions.findIndex((t) => t.id === id);
+  const index = transactions.findIndex((t) => t.id == id);
   if (index !== -1) {
     transactions.splice(index, 1);
   }
