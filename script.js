@@ -16,6 +16,7 @@ const searchButton = document.getElementById("search-button");
 const dateInput = document.getElementById("date");
 
 const transactions = [];
+var updateModalId = null;
 
 function saveTransactionsToLocalStorage() {
   localStorage.setItem("transactions", JSON.stringify(transactions));
@@ -73,6 +74,22 @@ async function cadastrar(transaction) {
   }
 }
 
+async function atualizar(transaction) {
+  try {
+    await axios.put(
+      `http://localhost:8080/transactions/${transaction.id}`,
+      transaction,
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+  } catch (error) {
+    throw new Error("Erro ao atualizar transação");
+  }
+}
+
 async function deletar(id) {
   try {
     await axios.delete(`http://localhost:8080/transactions/${id}`, {
@@ -105,6 +122,7 @@ addTransactionButton.addEventListener("click", () => {
 
 closeButton.addEventListener("click", () => {
   closeModal();
+  console.log(updateModalId);
 });
 
 function closeModal() {
@@ -116,6 +134,12 @@ function closeModal() {
   modalForm.reset();
   selectedTransactionType = null;
   transactionTypeButtons.forEach((btn) => btn.classList.remove("selected"));
+
+  // Limpa o ID do modal de atualizar
+  updateModalId = null;
+
+  // Muda o nome do botão pra "Cadastrar"
+  document.querySelector(".save-button").textContent = "Cadastrar";
 }
 
 // Adiciona uma transação através do formulário
@@ -142,15 +166,31 @@ modalForm.addEventListener("submit", async (e) => {
   }
 
   const transaction = {
-    id: Date.now(),
+    id: updateModalId ?? Date.now(),
     description: description.trim(),
     amount: selectedTransactionType === "expense" ? -amount : amount,
-    created_at: new Date(),
+    created_at: new Date(dateInput.value),
     type,
     category,
   };
 
   try {
+    // Se o ID do modal de atualizar estiver preenchido, atualize a transação
+    if (updateModalId) {
+      await atualizar(transaction);
+      const index = transactions.findIndex((t) => t.id == transaction.id);
+      transactions.splice(index, 1, {
+        ...transaction,
+        created_at: transaction.created_at.toISOString(),
+      });
+
+      saveTransactionsToLocalStorage();
+      updateTransactionsList();
+      updateSummary();
+      closeModal();
+      return;
+    }
+
     // Tente cadastrar a transação no back-end
     await cadastrar(transaction);
     // Se bem-sucedido, atualize o front-end:
@@ -217,14 +257,61 @@ function updateTransactionsList() {
                                 <span class="transaction-data">${formatDateToBR(
                                   transaction.created_at
                                 )}</span>
+                                <span class="transaction-operation">
+                                <button class="update-button" data-id="${
+                                  transaction.id
+                                }"><i class="ph ph-pencil-simple"></i></button>
                                 <button class="delete-button" data-id="${
                                   transaction.id
                                 }"><i class="ph ph-trash"></i></button>
+                                </span>
                         </li>
                 `;
   });
   transactionsList.innerHTML = transactionsListHTML.join("");
   attachDeleteListeners(); // Botões de excluir
+  attachUpdateListeners(); // Botões de atualizar
+}
+
+// Botões de atualizar
+function attachUpdateListeners() {
+  const updateButtons = document.querySelectorAll(".update-button");
+  updateButtons.forEach((button) => {
+    button.addEventListener("click", (e) => {
+      // Preenche o formulário com os dados da transação
+      updateModalId = parseInt(
+        e.target.closest(".update-button").getAttribute("data-id")
+      );
+
+      const transaction = transactions.find((t) => t.id == updateModalId);
+
+      document.getElementById("description").value = transaction.description;
+      document.getElementById("amount").value = Math.abs(transaction.amount);
+      document.getElementById("category").value = transaction.category;
+      document.getElementById("date").value =
+        transaction.created_at.split("T")[0];
+
+      console.log(transaction);
+      // Seleciona o tipo de transação
+      if (transaction.amount >= 0) {
+        transactionTypeButtons[0].classList.add("selected");
+        transactionTypeButtons[1].classList.remove("selected");
+        selectedTransactionType = "income";
+      } else {
+        transactionTypeButtons[1].classList.add("selected");
+        transactionTypeButtons[0].classList.remove("selected");
+        selectedTransactionType = "expense";
+      }
+
+      // Mudar o nome do botão pra "Atualizar"
+      document.querySelector(".save-button").textContent = "Atualizar";
+
+      // Abre a modal
+      document.querySelector("html").dataset.isModalOpen = true;
+      modalOverlay.style.display = "block";
+      modal.style.display = "block";
+    });
+  });
 }
 
 // Botões de excluir
@@ -317,6 +404,9 @@ function displayTransactions(transactionsToDisplay) {
                                 <span class="transaction-data">${formatDateToBR(
                                   transaction.created_at
                                 )}</span>
+                                <button class="update-button" data-id="${
+                                  transaction.id
+                                }"><i class="ph ph-pencil-simple"></i></button>
                                 <button class="delete-button" data-id="${
                                   transaction.id
                                 }"><i class="ph ph-trash"></i></button>
